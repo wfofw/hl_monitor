@@ -12,7 +12,7 @@ If you have Node < 21, the program will still run, but there may be limitations 
 
 ## Clone the repository
 
-`git clone <your-repo-url> perp`
+`git clone https://github.com/wfofw/perp_stats.git perp`
 
 `cd perp`
 
@@ -25,13 +25,13 @@ If you have Node < 21, the program will still run, but there may be limitations 
 
 Double-click perp_monitor.bat → enter parameters interactively → run.
 
-Logs (if enabled) are writing in `./logs/perp_YYYYMMDD_HHmmss.log.`
+Logs (if enabled) are written to `./logs/perp_YYYYMMDD_HHmmss.log.`
 
 ## 🔧 Parameters
 | Flag | Description | Default value |
 |:---|:---|:---|
 |`--threshold <USD>`   |	Minimum trade size to start a NEW position	                       |`50000`|
-|`--coins BTC,ETH,`    |  Restrict markets	                                                 |`all perp-markets from meta`|
+|`--coins BTC,ETH`     |  Restrict markets	                                                 |`all perp-markets from meta`|
 |`--from <ISO	ms>`     |  Thin backmatch via recentTrades (limited by response depth)        |`null`|
 |`--print-trades`      |  Print large trades by threshold (does not affect aggregation)      |`false`|
 |`--table-sec <N>`	   |  Live table update period in seconds	                               |`5`|
