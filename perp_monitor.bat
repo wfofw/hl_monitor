@@ -29,7 +29,7 @@ if "%THRESHOLD%"=="" set "THRESHOLD=%DEF_THRESHOLD%"
 
 set /p COINS=Coins separated by commas (BTC,ETH) [ all ]: 
 
-set /p FROM=История c (ISO or ms, e.g. 2025-10-10T00:00:00Z) [ do not use ]: 
+set /p FROM=History from (ISO or ms, e.g. 2025-10-10T00:00:00Z) [ do not use ]: 
 
 set /p DUMP_AFTER=Dump after N closed positions [ %DEF_DUMP_AFTER% ]: 
 if "%DUMP_AFTER%"=="" set "DUMP_AFTER=%DEF_DUMP_AFTER%"
