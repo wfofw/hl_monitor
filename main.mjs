@@ -16,13 +16,13 @@
 // ║     --table-sec <sec>     table update frequency (default 5)           ║
 // ║     --dump-after <N>      dump after N closed positions (default 10)   ║
 // ║  Examples:                                                             ║
-// ║     --> node main_v2.mjs                                               ║
+// ║     --> node main.mjs                                                  ║
 // ║          (All coins, threshold $50k, table every 5 seconds)            ║
 // ║                                                                        ║
-// ║     --> node main_v2.mjs --coins BTC,ETH --threshold 100000            ║
+// ║     --> node main.mjs --coins BTC,ETH --threshold 100000               ║
 // ║          (Track only BTC and ETH, trades over $100k)                   ║
 // ║                                                                        ║
-// ║     --> node main_v2.mjs --print-trades --dump-after 5                 ║
+// ║     --> node main.mjs --print-trades --dump-after 5                    ║
 // ║          (Show all trades, dump after 5 closed positions)              ║
 // ╚════════════════════════════════════════════════════════════════════════╝
 
@@ -253,8 +253,10 @@ function shouldProcessForAggregation(tr, hasOpenPosForActorCoin, threshold) {
   const px = Number(tr.px), sz = Number(tr.sz);
   if (!Number.isFinite(px) || !Number.isFinite(sz)) return false;
   const notional = px * sz;
-  // If we already have an open position for this (actor,coin) - we always process  if (hasOpenPosForActorCoin) return true;
-  // Otherwise - only if it's a major launch  return notional >= threshold;
+  // If we already have an open position for this (actor,coin) - we always process  
+  if (hasOpenPosForActorCoin) return true;
+  // Otherwise - only if it's a major launch  
+  return notional >= threshold;
 }
 
 // side: B = aggressive buyer → LONG; A/S = aggressor-seller → SHORT
@@ -405,18 +407,34 @@ function handleTradeAggregate(tr, threshold) {
   let rest = applyClose(pos, px, sz, time);
 
   if (pos.size === 0) {
-      // Position fully closed
-      const closed = {
-        ...pos,
-        status: 'CLOSED',
-        durationMs: ((pos.closeTime ?? time) - pos.openTime),
-        pnlUsd: calcPnlUSD(pos),
-        openTimeIso: fmtTS(pos.openTime),
-        lastUpdateIso: fmtTS(pos.lastUpdate),
-        closeTimeIso: fmtTS(pos.closeTime ?? pos.lastUpdate)
-      };
-      pushClosed(closed);
-      openPositions.delete(k);
+    // Position fully closed
+    const closed = {
+      ...pos,
+      status: 'CLOSED',
+      durationMs: ((pos.closeTime ?? time) - pos.openTime),
+      pnlUsd: calcPnlUSD(pos),
+      openTimeIso: fmtTS(pos.openTime),
+      lastUpdateIso: fmtTS(pos.lastUpdate),
+      closeTimeIso: fmtTS(pos.closeTime ?? pos.lastUpdate)
+    };
+
+    pushClosed(closed);
+    openPositions.delete(k);
+
+    // If the incoming trade was larger than the current position,
+    // the remainder opens a new position in the opposite direction.
+    if (rest > EPS) {
+      const reversedPos = createPosition({
+        address: actor,
+        coin: tr.coin,
+        direction,
+        px,
+        sz: rest,
+        time
+      });
+
+      openPositions.set(k, reversedPos);
+    }
   }
 }
 
@@ -519,7 +537,7 @@ function dumpClosed() {
             // There may not be any users in recentTrades—such a trade is not suitable for aggregation (an actor is required)
             if (!t.users || !Array.isArray(t.users)) continue;
             const tr = { ...t, coin };
-            handleTradeAggregate(tr);
+            handleTradeAggregate(tr, CONFIG.threshold);
             if (args.printTrades) maybePrintTradeEvent(tr, args.threshold);
         }
         await sleep(50);
