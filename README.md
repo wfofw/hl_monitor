@@ -1,58 +1,100 @@
-## ⚡ Hyperliquid Perp Realtime Monitor
+<p align="center">
+  <a href="https://nodejs.org/en/download/"><img src="https://img.shields.io/badge/Node.js-21+-5FA04E?logo=nodedotjs&logoColor=white" alt="Node.js 21+"></a>
+</p>
 
-A real-time monitor that listens to the public Hyperliquid WS, aggregates partial position fills by address, calculates VWAP, PnL, and holding time, tracks partial/full closes and reversals, displays a live table, and saves closed positions to files.
+# 🖥 Hyperliquid Perpetuals Monitor
 
-## ✅ Requirements and recommendations
+Hyperliquid Perpetuals Monitor is a tool for collecting and analyzing perpetual futures trades in real time.
 
-Node.js 21+ — required for global fetch and WebSocket in Node.
+It collects newly reported perpetual futures fills from Hyperliquid in real time, aggregates positions by address/coin, calculates open/close (VWAP), displays a live table, and dumps closed positions.
 
-Windows (recommended) — there is an interactive launcher perp_monitor.bat.
+⚠️ *If you have Node < 21, the program will still run, but there may be limitations (no autologging via batch file, etc.).*
 
-If you have Node < 21, the program will still run, but there may be limitations (no autologging via batch file, etc.).
+## 🌟 Highlights
 
-## Clone the repository
+- A convenient table with auto-updates right in the terminal.
+- Aggregates partial position fills by address
+- Ability to start tracking deals from an arbitrary date in the past
 
-`git clone https://github.com/wfofw/perp_stats.git perp`
+## ℹ️ Overview
 
-`cd perp`
+The goal is to track and store trades—both historical and real-time—and to perform analytics based on the collected data.
 
+The [Hyperliquid WS](https://hyperliquid.gitbook.io/hyperliquid-docs/for-developers/api/websocket) served as the foundation, and the following features were implemented:
 
-## ▶️ Start
-### Option A - Direct (cross-platform)
-`node main.mjs [parameters]`
+- Aggregation of partial fills into a single position (a single actual position may consist of multiple trades)
+- Mapping fills to the correct wallet address
+- Logic for partial position closures and reversals
+- WebSocket reconnection after prolonged operation
 
-### Option B - Windows Launcher
+Long-running WebSocket connections may experience disconnects or gaps in the local event stream. 
 
-Double-click perp_monitor.bat → enter parameters interactively → run.
+The monitor therefore includes reconnection and state-recovery logic to reduce divergence between the local position model and incoming market events
 
-Logs (if enabled) are written to `./logs/perp_YYYYMMDD_HHmmss.log.`
+## ⚙️ Installation & Setup
 
-## 🔧 Parameters
+Clone the repository:
+
+```bash
+git clone https://github.com/wfofw/hl_monitor.git hl_monitor
+cd hl_monitor
+```
+
+### 📍 Option A - Direct (cross-platform)
+
+You can launch the project from the terminal by manually entering the command and the optional parameters listed below.
+
 | Flag | Description | Default value |
 |:---|:---|:---|
-|`--threshold <USD>`   |	Minimum trade size to start a NEW position	                       |`50000`|
-|`--coins BTC,ETH`     |  Restrict markets	                                                 |`all perp-markets from meta`|
-|`--from <ISO	ms>`     |  Thin backmatch via recentTrades (limited by response depth)        |`null`|
-|`--print-trades`      |  Print large trades by threshold (does not affect aggregation)      |`false`|
-|`--table-sec <N>`	   |  Live table update period in seconds	                               |`5`|
-|`--dump-after <N>`    |  Dump after N closed positions in closed_<timestamp>.json	         |`10`|
+|`--threshold <USD>`   |	Minimum trade size to start a NEW position	                                         |`50000`|
+|`--coins BTC,ETH`     |  Restrict markets	                                                                   |`all perp-markets from meta`|
+|`--from <ISO>`        |  Backfill recent trades from the specified time, subject to API response depth        |`null`|
+|`--print-trades`      |  Print trades that meet the configured threshold                                      |`false`|
+|`--table-sec <N>`	   |  Live table update period in seconds	                                                 |`5`|
+|`--dump-after <N>`    |  Write closed positions to JSON after N positions are closed	                         |`10`|
 
-### ! Important information about threshold !
+Examples:
 
-When there is no position, a new one is created only if price*size >= threshold;
+All coins, threshold $50k, table every 5 seconds:
 
-When a position already exists, all trades are always processed (even those below the threshold) to avoid partial closings/reversals.
+```bash
+node main.mjs
+```
+Track only BTC and ETH, trades over $100k:
 
-## 👀 View in the CLI
+```bash
+node main.mjs --coins BTC,ETH --threshold 100000
+```
+
+Print incoming trades to the console, dump after 5 closed positions:
+
+```bash
+node main.mjs --print-trades --dump-after 5
+```
+
+### 📍 Option B - Windows Launcher
+
+1. Double-click perp_monitor.bat
+2. Enter parameters interactively
+3. The program will start collecting trades
+
+Logs (if enabled) are written to `./logs/perp_YYYYMMDD_HHmmss.log`
+
+#### 👀 View in the CLI
 
 The program draws a live table of open positions (updated every --table-sec):
 |    address   |coin|    dir   |     size    |          avgOpen        |            openSum          |     currentSum     |           last            |         since        |                  closedCnt                |
 |:---|:---|:---|:---|:---|:---|:---|:---|:---|:---|
 |wallet address|coin|LONG/SHORT|current volume|avg entry price (VWAP)|the sum of all opening transactions|current transaction amount|last update time|time of first opening|number of positions this address closed during the session|
 
-### Dump (--dump-after N) contains an array of dictionaries with closed positions
-#### Example
-```
+### ❗️ Important information about threshold
+
+When there is no position, a new one is created only if price*size >= threshold;
+
+When a position already exists, all trades are always processed (even those below the threshold) to avoid partial closings/reversals.
+
+## 📚 Dump example
+```json
   {
     "address": "0xb28cf8649d1cda2975d290f04ea4cc4db7b3828e",
     "coin": "BTC",
@@ -72,33 +114,11 @@ The program draws a live table of open positions (updated every --table-sec):
     "pnlUsd": -9727.807090000948
   }
 ```
-## 🧠 Aggregation logic (briefly)
+### Position lifecycle
 
-—> Position key: address + coin.
+For an opposite-direction fill:
 
-—> Partial fills add up to one position: VWAP, total size, sum of openings.
-
-### In the opposite transaction:
-
-—> Closing min(currentSize, incomingSize);
-
-—> If the position became 0 → we consider it closed, move it to closedPositions;
-
-—> The remainder (if there was more) is a reversal → we open a new position in the other direction.
-
-—> Hold time: closeTime - openTime (in ms), formatted in hold.
-
-## 💾 Examples
-
-### Track all transactions from $50k
-
-`node main.mjs`
-
-### BTC and ETH only, trades from $100k, print major events
-`node main.mjs --coins BTC,ETH --threshold 100000 --print-trades`
-
-### Dump after 5 closed positions, quick table update
-`node main.mjs --dump-after 5 --table-sec 3`
-
-### Pull up some history (if recentTrades still holds)
-`node main.mjs --from "2025-10-10T00:00:00Z"`
+1. Close `min(currentSize, incomingSize)`.
+2. If the remaining position size is `0`, the position is marked as `CLOSED`.
+3. If the incoming fill exceeds the current position size, the remainder opens a new position in the opposite direction.
+4. Holding time is calculated as `closeTime - openTime`.
