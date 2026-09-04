@@ -10,10 +10,6 @@ It collects newly reported perpetual futures fills from Hyperliquid in real time
 
 ⚠️ *If you have Node < 21, the program will still run, but there may be limitations (no autologging via batch file, etc.).*
 
-### Live Monitor
-
-![Live monitor](./assets/live-monitor.png)
-
 ## 🌟 Highlights
 
 - A convenient table with auto-updates right in the terminal.
@@ -34,6 +30,10 @@ The [Hyperliquid WS](https://hyperliquid.gitbook.io/hyperliquid-docs/for-develop
 Long-running WebSocket connections may experience disconnects or gaps in the local event stream. 
 
 The monitor therefore includes reconnection and state-recovery logic to reduce divergence between the local position model and incoming market events
+
+### Live Monitor
+
+![Live monitor](./assets/live-monitor.png)
 
 ## ⚙️ Installation & Setup
 
