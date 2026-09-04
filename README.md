@@ -10,6 +10,10 @@ It collects newly reported perpetual futures fills from Hyperliquid in real time
 
 ⚠️ *If you have Node < 21, the program will still run, but there may be limitations (no autologging via batch file, etc.).*
 
+### Live Monitor
+
+![Live monitor](./assets/live-monitor.png)
+
 ## 🌟 Highlights
 
 - A convenient table with auto-updates right in the terminal.
