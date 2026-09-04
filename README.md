@@ -18,7 +18,7 @@ It collects newly reported perpetual futures fills from Hyperliquid in real time
 
 ## ℹ️ Overview
 
-The goal is to track and store trades—both historical and real-time—and to perform analytics based on the collected data.
+The goal is to track and store trades-both historical and real-time-and to perform analytics based on the collected data.
 
 The [Hyperliquid WS](https://hyperliquid.gitbook.io/hyperliquid-docs/for-developers/api/websocket) served as the foundation, and the following features were implemented:
 
